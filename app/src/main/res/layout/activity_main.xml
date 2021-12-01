@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--<linearLayout-->
+<!--    xmlns:android="http://schemas.android.com/apk/res/android/"-->
+<!--    android:layout_width="match_parent"-->
+<!--    android:layout_height="match_parent"-->
+<!--    android:orientation="horizontal"-->
+<!--    />-->
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -8,12 +14,62 @@
     tools:context=".MainActivity">
 
 
+    <!--    android:layout_centerInParent="false"-->
+<!--竖直的，在这里看就是水平的-->
     <org.opencv.android.JavaCameraView
         android:id="@+id/cameraView"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        />
+        android:layout_width="400dp"
+        android:layout_height="300dp"
+        android:layout_centerHorizontal="true"/>
 
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="300dp"
+        android:layout_height="160dp"
+        android:layout_below="@id/cameraView"
+        android:layout_centerHorizontal="true"
+        app:srcCompat="@drawable/d03" />
+
+        <ImageView
+        android:id="@+id/imageView3"
+        android:layout_width="300dp"
+        android:layout_height="160dp"
+            android:layout_below="@id/imageView"
+            android:layout_centerHorizontal="true" />
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_toLeftOf="@id/button4"
+            android:text="处理" />
+
+
+
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentBottom="true"
+            android:text="相册" />
+
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@id/button2"
+            android:layout_alignParentBottom="true"
+            android:text="相机" />
+
+    <Button
+        android:id="@+id/button4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:text="丢弃" />
 </RelativeLayout>
 <!--<?xml version="1.0" encoding="utf-8"?>-->
 <!--<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
