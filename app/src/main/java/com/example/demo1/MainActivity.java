@@ -42,6 +42,7 @@ import android.widget.ImageView;
 
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
+//import com.example.demo1.CustomOpenCVJavaCameraView;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2
 {
@@ -137,6 +138,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
     {
         mRGBA = inputFrame.rgba();
+
+        int w = mRGBA.width();
+        int h = mRGBA.height();
+        Imgproc.rectangle(mRGBA, new Point(w * 1 / 3, 0), new Point(
+                w * 2 / 3, h), new Scalar( 255, 0, 0 ), 5
+        );
+
         mRGBAT = mRGBA.t();
         Core.flip(mRGBA.t(), mRGBAT, 1);
         Imgproc.resize(mRGBAT, mRGBAT, mRGBA.size());
