@@ -15,6 +15,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -27,12 +28,17 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -43,21 +49,33 @@ import android.widget.ImageView;
 
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
+
+import static org.opencv.imgproc.Imgproc.INTER_AREA;
+import static org.opencv.imgproc.Imgproc.INTER_CUBIC;
+import static org.opencv.imgproc.Imgproc.INTER_LINEAR;
+import static org.opencv.imgproc.Imgproc.resize;
 //import com.example.demo1.CustomOpenCVJavaCameraView;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static String TAG = "MainActivity";
         private Button bt1, bt2, bt3;
-    private ImageView iv1, iv2;//iv2,iv3;
-    private Mat srcmat1, dstmat;
-    private Bitmap bitmap;
+    private ImageView iv1, iv2, iv3;//iv2,iv3;
+    private Mat srcmat1, dstmat, hsvMat;
+    private Bitmap bitmap, contours_bmap;
+    private Bitmap bmap;
     JavaCameraView javaCameraView;
-    Mat mRGBA, mRGBAT;
+    Mat mRGBA, mRGBAT, resizeimage;        //Mat resizeimage = new Mat();
     private static final int MY_CAMERA_REQUEST_CODE = 100;
     int activeCamera = CameraBridgeViewBase.CAMERA_ID_BACK;// or front
-
     int SELECT_PICTURE = 200;
+    //private List<MatOfPoint> contours;
+    private MatOfPoint2f contours2f, approxCurve;
+    private int contoursSize;
+    private Bitmap resultBitmap;
+    //Mat mRgba, mHsv,hierarchy,mHsvMask ,mDilated;
+    Mat mRgba, mIntermediateMat, mGray, hierarchy;
+    List<MatOfPoint> contours;
 
     BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(MainActivity.this) {
         @Override
@@ -115,7 +133,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         javaCameraView = (JavaCameraView) findViewById(R.id.cameraView);
         javaCameraView.setVisibility(SurfaceView.VISIBLE);
         javaCameraView.setCvCameraViewListener(MainActivity.this);
-
+        javaCameraView.setMaxFrameSize(2560,1440);
+//        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         // checking if the permission has already been granted
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -136,10 +155,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         iv1 = findViewById(R.id.imageView);
         iv2 = findViewById(R.id.imageView3);
    //     iv2 = findViewById(R.id.imageView2);
-   //     iv3 = findViewById(R.id.imageView3);
+//        iv3 = findViewById(R.id.topView);
         srcmat1 = new Mat();
     //    srcmat2 = new Mat();
         dstmat = new Mat();
+
 
         bt3.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -151,7 +171,77 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 Rect roi = new Rect( mRGBA.width()  / 3, 0, mRGBA.width() / 3, mRGBA.height());
                 //Create the cv::Mat with the ROI you need, where "image" is the cv::Mat you want to extract the ROI from
                 srcmat1 = (new Mat(mRGBA, roi)).t();
+                Core.flip(srcmat1, srcmat1, 1);
 
+//                mRgba =srcmat1;
+//                mHsv = new Mat();
+//                Imgproc.cvtColor(mRgba, mHsv, Imgproc.COLOR_RGB2HSV, 3);
+//                hierarchy.release();
+//                Scalar lowerThreshold = new Scalar ( 0, 0, 0 );
+//                Scalar upperThreshold = new Scalar ( 255, 255, 255 );
+//                Core.inRange ( mHsv, lowerThreshold , upperThreshold, mHsvMask );
+//                Imgproc.dilate ( mHsvMask, mDilated, new Mat() );
+//                try {
+//                    Imgproc.findContours(mDilated, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+//                } catch(java.lang.IllegalArgumentException e) {
+//                    Log.d(TAG, "contuous error !!!!!!!!!!!!!!");
+//                }
+//                try {
+//                    for ( int contourIdx=0; contourIdx < contours.size(); contourIdx++ )
+//                    {
+//                        if(Imgproc.contourArea(contours.get(contourIdx))>100) {
+//                            Imgproc.drawContours(mRgba, contours, contourIdx, new Scalar(Math.random() * 255, Math.random() * 255, Math.random() * 255), 1, 8, hierarchy, 0, new Point());
+//                        }
+//                    }
+//                } catch (Exception e) {
+//                    Log.d(TAG, "contuous error 2   !!!!!!!!!!!!!!");
+//                }
+//
+//                resize(mRgba, mRgba, mRGBA.size());
+//                srcmat1  = mRgba;
+
+
+                Size scaleSize = new Size(iv1.getWidth(),iv1.getHeight());
+                resize(srcmat1, srcmat1, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
+
+//                Mat resultMat = srcmat1.clone();
+//                hsvMat = new Mat();
+//                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
+//                Core.inRange(hsvMat, new Scalar(0, 0, 221), new Scalar(180, 30, 255), hsvMat);
+//                Core.bitwise_not(hsvMat, hsvMat);
+//                contours_bmap = Bitmap.createBitmap(hsvMat.width(), hsvMat.height(), Bitmap.Config.ARGB_8888);
+//                Mat outMat = new Mat();
+//                Imgproc.findContours(hsvMat, contours, outMat, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+//                contoursSize = contours.size();
+//                double epsilon;
+//                Imgproc.drawContours(resultMat, contours, -1, new Scalar(0, 0, 0), 10);
+//
+//                Imgproc.cvtColor(resultMat, resultMat, Imgproc.COLOR_RGB2BGR);
+//                Utils.matToBitmap(resultMat, contours_bmap);
+//                iv1.setImageBitmap(contours_bmap);
+
+//                contours = new ArrayList<>();
+//                hsvMat = new Mat();
+//                Mat resultMat = srcmat1.clone();
+//                Mat binaryMat = new Mat();
+//                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
+//                Core.inRange(hsvMat, new Scalar(0, 0, 221), new Scalar(180, 30, 255), binaryMat);
+//                Core.bitwise_not(binaryMat, binaryMat);
+//                resultBitmap = Bitmap.createBitmap(binaryMat.width(), binaryMat.height(), Bitmap.Config.ARGB_8888);
+//                Mat outMat = new Mat();
+//                Imgproc.findContours(binaryMat, contours, outMat, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+//                contoursSize = contours.size();
+//                Imgproc.drawContours(resultMat, contours, -1, new Scalar(0, 0, 0), 10);
+//
+//                Imgproc.cvtColor(resultMat, resultMat, Imgproc.COLOR_RGB2BGR);
+//                Utils.matToBitmap(resultMat, resultBitmap);
+//                iv1.setImageBitmap(resultBitmap);
+
+
+//                Imgproc.rectangle(srcmat1, new Point(2, 2), new Point(
+//                        srcmat1.width() - 2, srcmat1.height() - 2), new Scalar( 255, 0, 0 ), 1
+//                );
+//
                 bitmap = Bitmap.createBitmap(srcmat1.width(), srcmat1.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(srcmat1, bitmap);
 //                iv1.setImageBitmap(bitmap);
@@ -302,13 +392,36 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     public void onCameraViewStarted(int width, int height)
     {
+//        mRgba = new Mat(height, width, CvType.CV_8UC4);
+//        mHsv = new Mat(height,width,CvType.CV_8UC3);
+//        hierarchy = new Mat();
+//        mHsvMask = new Mat();
+//        mDilated = new Mat(height, width, CvType.CV_8UC4);
+
+        mRgba = new Mat(height, width, CvType.CV_8UC4);
+        mIntermediateMat = new Mat(height, width, CvType.CV_8UC4);
+        mGray = new Mat(height, width, CvType.CV_8UC1);
+        hierarchy = new Mat();
+
         mRGBA = new Mat(height, width, CvType.CV_8UC4);
+//        resizeimage = new Mat(javaCameraView.getHeight(), javaCameraView.getWidth(), CvType.CV_8UC4);
+        //resizeimage = new Mat(200, 200, CvType.CV_8UC4);
+
     }
 
     @Override
     public void onCameraViewStopped()
     {
         mRGBA.release();
+//        mRgba.release();
+//        mHsv.release();
+//        mHsvMask.release();
+//        mDilated.release();
+//        hierarchy.release();
+        mRgba.release();
+        mIntermediateMat.release();
+        mGray.release();
+        hierarchy.release();
     }
 
     @Override
@@ -324,8 +437,45 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         mRGBAT = mRGBA.t();
         Core.flip(mRGBA.t(), mRGBAT, 1);
-        Imgproc.resize(mRGBAT, mRGBAT, mRGBA.size());
-        return mRGBAT;
+        //return mRGBAT;
+        resize(mRGBAT, mRGBAT, mRGBA.size());
+
+        //Size scaleSize = new Size(javaCameraView.getWidth(),javaCameraView.getHeight());
+//        Size scaleSize = new Size(200,200);
+//        resize(mRGBAT, resizeimage, scaleSize , 0, 0,INTER_CUBIC  );//INTER_AREA
+        //resizeimage = mRGBAT;
+        //resize(mRGBAT, resizeimage, scaleSize , 0, 0,INTER_LINEAR  );
+//         bmap = Bitmap.createBitmap(iv3.getWidth() - 1, iv3.getHeight() - 1, Bitmap.Config.ARGB_8888);
+//        Utils.matToBitmap(mRGBAT, bmap);
+////                iv1.setImageBitmap(bitmap);
+//        iv3.setImageBitmap(bmap);
+        mRgba = inputFrame.rgba();
+        contours = new ArrayList<MatOfPoint>();
+        hierarchy = new Mat();
+        Imgproc.Canny(mRgba, mIntermediateMat, 80, 100);
+        Imgproc.findContours(mIntermediateMat, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
+
+        hierarchy.release();
+
+        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
+            MatOfPoint2f approxCurve = new MatOfPoint2f();
+            MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(contourIdx).toArray());
+            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
+            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
+
+            Rect rect = Imgproc.boundingRect(points);
+            double height = rect.height;
+            double width = rect.width;
+
+            if (height > 50 && width > 50) {
+                Imgproc.rectangle(mRgba, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0, 0), 3);
+                Imgproc.putText(mRgba, "contours", rect.tl(), 0, 2, new Scalar(0, 255, 255), 4);
+            }
+        }
+
+        return mRgba;
+        //return mRGBAT;
     }
 
     @Override
@@ -337,6 +487,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        srcmat1.release();
+//        srcmat2.release();
+//        dstmat.release();
 
         if (javaCameraView != null)
         {
