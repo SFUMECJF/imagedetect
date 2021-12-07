@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.sip.SipSession;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private static String TAG = "MainActivity";
         private Button bt1, bt2, bt3;
     private ImageView iv1, iv2, iv3;//iv2,iv3;
-    private Mat srcmat1, dstmat, hsvMat;
+    private Mat srcmat1, dstmat, hsvMat, topMat;
     private Bitmap bitmap, contours_bmap;
     private Bitmap bmap;
     JavaCameraView javaCameraView;
@@ -155,10 +156,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         iv1 = findViewById(R.id.imageView);
         iv2 = findViewById(R.id.imageView3);
    //     iv2 = findViewById(R.id.imageView2);
-        iv3 = findViewById(R.id.imageView);
+
+        iv3 = findViewById(R.id.topView);
+
         srcmat1 = new Mat();
     //    srcmat2 = new Mat();
         dstmat = new Mat();
+        topMat = new Mat();
 
 
         bt3.setOnClickListener(new View.OnClickListener() {
@@ -246,12 +250,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                        srcmat1.width() - 2, srcmat1.height() - 2), new Scalar( 255, 0, 0 ), 1
 //                );
 //
-                Imgproc.rectangle(srcmat1, new Point(0, 0), new Point(srcmat1.width(), srcmat1.height()), new Scalar( 255, 0, 0 ), 3);
+                Imgproc.rectangle(srcmat1, new Point(0, 0), new Point(srcmat1.width()  , srcmat1.height() ), new Scalar( 0, 255, 0 ), 3);
 
 
                 bitmap = Bitmap.createBitmap(srcmat1.width(), srcmat1.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(srcmat1, bitmap);
 //                iv1.setImageBitmap(bitmap);
+                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "origin" , "yourDescription");
                 iv1.setImageBitmap(bitmap);
             }
         });
@@ -520,8 +525,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             @Override
             public void run() {
 
-                bmap = Bitmap.createBitmap(mRGBAT.width(), mRGBAT.height(), Bitmap.Config.ARGB_8888);
-                Utils.matToBitmap(mRGBAT, bmap);
+
+                bmap = Bitmap.createBitmap(iv3.getWidth(),  iv3.getHeight(), Bitmap.Config.ARGB_8888);
+                resize(mRGBAT, topMat, new Size(iv3.getWidth(), iv3.getHeight()));
+                Utils.matToBitmap(topMat, bmap);
 ////                iv1.setImageBitmap(bitmap);
                 iv3.setImageBitmap(bmap);
 
@@ -542,6 +549,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         srcmat1.release();
 //        srcmat2.release();
 //        dstmat.release();
+        topMat.release();
 
         if (javaCameraView != null)
         {
