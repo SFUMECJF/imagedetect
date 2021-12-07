@@ -18,17 +18,17 @@
 <!--竖直的，在这里看就是水平的-->
     <org.opencv.android.JavaCameraView
         android:id="@+id/cameraView"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
         android:layout_centerHorizontal="true" />
 
-<!--    <ImageView-->
-<!--        android:id="@+id/topView"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="300dp"-->
-<!--        android:layout_below="@id/cameraView"-->
-<!--        android:layout_alignParentTop="true"-->
-<!--        android:layout_centerHorizontal="true" />-->
+    <ImageView
+        android:id="@+id/topView"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_below="@id/cameraView"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
 
     <ImageView
         android:id="@+id/imageView"
