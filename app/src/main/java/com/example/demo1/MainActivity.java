@@ -168,7 +168,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                startActivityForResult(intent, 100);
                 //startCropActivity();
                 //Create the rectangle
-                Rect roi = new Rect( mRGBA.width()  / 3, 0, mRGBA.width() / 3, mRGBA.height());
+                //        Imgproc.rectangle(mRGBA, new Point(w * 12 / 24, h * 11 / 24), new Point(
+                //                w * 13 / 24, h * 15/ 24), new Scalar( 0, 255, 0 ), 3);
+//                Rect roi = new Rect( mRGBA.width()  / 3, 0, mRGBA.width() / 3, mRGBA.height());
+                Rect roi = new Rect( mRGBA.width() * 12 / 24, mRGBA.height() * 10 / 24, mRGBA.width() * 1/ 24, mRGBA.height() * 6/ 24);
+
                 //Create the cv::Mat with the ROI you need, where "image" is the cv::Mat you want to extract the ROI from
                 srcmat1 = (new Mat(mRGBA, roi)).t();
                 Core.flip(srcmat1, srcmat1, 1);
@@ -242,6 +246,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                        srcmat1.width() - 2, srcmat1.height() - 2), new Scalar( 255, 0, 0 ), 1
 //                );
 //
+                Imgproc.rectangle(srcmat1, new Point(0, 0), new Point(srcmat1.width(), srcmat1.height()), new Scalar( 255, 0, 0 ), 3);
+
+
                 bitmap = Bitmap.createBitmap(srcmat1.width(), srcmat1.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(srcmat1, bitmap);
 //                iv1.setImageBitmap(bitmap);
@@ -264,8 +271,20 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
               //  Core.bitwise_or(srcmat1, srcmat2, dstmat);
                 //Imgproc.cvtColor(srcmat1, dstmat, Imgproc.COLOR_BGRA2GRAY);
+                Imgproc.medianBlur(srcmat1, srcmat1, 3);
+                Imgproc.GaussianBlur(srcmat1, srcmat1, new Size(11.0, 11.0), 4, 4);
+
+                Mat binaryMat = new Mat();
+//                Imgproc.cvtColor(dstmat, binaryMat, Imgproc.COLOR_BGR2GRAY);
+                hsvMat = srcmat1.clone();
+//                Mat resultMat = new Mat();
+                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
+                Core.inRange(hsvMat, new Scalar(110, 0, 0), new Scalar(160, 255, 255), srcmat1);
+
                 dstmat = Mat.ones(srcmat1.size(), CvType.CV_8UC1);
                 int ch = dstmat.channels(); //Calculates number of channels (Grayscale: 1, RGB: 3, etc.)
+                if (ch == 1)
+                    Log.d(TAG, "channel : " );
                 for (int i = 0; i < dstmat.cols(); i++) {
                     double ration = 0.0;
                     for (int j = 0; j < dstmat.rows(); j++) {
@@ -302,6 +321,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //
 //
 //
+//                dstmat = binaryMat;
+//                Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_GRAY2BGR);
+                //Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_RGB2BGR);
+                //Imgproc.cvtColor(hsvMat, dstmat, Imgproc.COLOR_HSV2BGR);
+                Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 255, 0, 0 ), 3);
                 bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(dstmat, bitmap);
 //                iv1.setImageBitmap(bitmap);
@@ -435,6 +459,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 w * 2 / 3, h), new Scalar( 255, 0, 0 ), 5
         );
 
+        Imgproc.rectangle(mRGBA, new Point(w * 12 / 24, h * 10 / 24), new Point(
+                w * 13 / 24, h * 16/ 24), new Scalar( 0, 255, 0 ), 3);
+
         mRGBAT = mRGBA.t();
         Core.flip(mRGBA.t(), mRGBAT, 1);
         //return mRGBAT;
@@ -449,33 +476,36 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //        Utils.matToBitmap(mRGBAT, bmap);
 ////                iv1.setImageBitmap(bitmap);
 //        iv3.setImageBitmap(bmap);
-        mRgba = inputFrame.rgba();
-        contours = new ArrayList<MatOfPoint>();
-        hierarchy = new Mat();
-        Imgproc.Canny(mRgba, mIntermediateMat, 80, 100);
-        Imgproc.findContours(mIntermediateMat, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
 
-        hierarchy.release();
 
-        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
-            MatOfPoint2f approxCurve = new MatOfPoint2f();
-            MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(contourIdx).toArray());
-            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
-            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
-            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
-
-            Rect rect = Imgproc.boundingRect(points);
-            double height = rect.height;
-            double width = rect.width;
-
-            if (height > 50 && width > 50) {
-                Imgproc.rectangle(mRgba, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0, 0), 3);
-                Imgproc.putText(mRgba, "contours", rect.tl(), 0, 2, new Scalar(0, 255, 255), 4);
-            }
-        }
-
-        return mRgba;
-        //return mRGBAT;
+//        Rect rect_rect = new Rect();
+//        mRgba = mRGBAT;
+//        contours = new ArrayList<MatOfPoint>();
+//        hierarchy = new Mat();
+//        Imgproc.Canny(mRgba, mIntermediateMat, 80, 100);
+//        Imgproc.findContours(mIntermediateMat, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
+//
+//        hierarchy.release();
+//
+//        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
+//            MatOfPoint2f approxCurve = new MatOfPoint2f();
+//            MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(contourIdx).toArray());
+//            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
+//            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+//            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
+//
+//            Rect rect = Imgproc.boundingRect(points);
+//            double height = rect.height;
+//            double width = rect.width;
+//
+//            if (height > 10 && height < 30 && width > 3 && width < 30) {
+//                Imgproc.rectangle(mRgba, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0, 0), 3);
+//                Imgproc.putText(mRgba, "contours", rect.tl(), 0, 2, new Scalar(0, 255, 255), 4);
+//            }
+//        }
+//
+//        return mRgba;
+        return mRGBAT;
     }
 
     @Override
