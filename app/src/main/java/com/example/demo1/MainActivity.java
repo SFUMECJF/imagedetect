@@ -155,7 +155,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         iv1 = findViewById(R.id.imageView);
         iv2 = findViewById(R.id.imageView3);
    //     iv2 = findViewById(R.id.imageView2);
-//        iv3 = findViewById(R.id.topView);
+        iv3 = findViewById(R.id.imageView);
         srcmat1 = new Mat();
     //    srcmat2 = new Mat();
         dstmat = new Mat();
@@ -255,6 +255,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 iv1.setImageBitmap(bitmap);
             }
         });
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                bmap = Bitmap.createBitmap(mRGBAT.width(), mRGBAT.height(), Bitmap.Config.ARGB_8888);
+//                Utils.matToBitmap(mRGBAT, bmap);
+//////                iv1.setImageBitmap(bitmap);
+//                iv3.setImageBitmap(bmap);
+//
+//            }
+//        });
 
         // handle the Choose Image button to trigger
         // the image chooser function
@@ -472,9 +483,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //        resize(mRGBAT, resizeimage, scaleSize , 0, 0,INTER_CUBIC  );//INTER_AREA
         //resizeimage = mRGBAT;
         //resize(mRGBAT, resizeimage, scaleSize , 0, 0,INTER_LINEAR  );
-//         bmap = Bitmap.createBitmap(iv3.getWidth() - 1, iv3.getHeight() - 1, Bitmap.Config.ARGB_8888);
+//         bmap = Bitmap.createBitmap(mRGBAT.width(), mRGBAT.height(), Bitmap.Config.ARGB_8888);
 //        Utils.matToBitmap(mRGBAT, bmap);
-////                iv1.setImageBitmap(bitmap);
+//////                iv1.setImageBitmap(bitmap);
 //        iv3.setImageBitmap(bmap);
 
 
@@ -505,6 +516,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //        }
 //
 //        return mRgba;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                bmap = Bitmap.createBitmap(mRGBAT.width(), mRGBAT.height(), Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(mRGBAT, bmap);
+////                iv1.setImageBitmap(bitmap);
+                iv3.setImageBitmap(bmap);
+
+            }
+        });
         return mRGBAT;
     }
 
