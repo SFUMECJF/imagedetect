@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">demo1</string>
+    <string name="app_name">试纸检测器</string>
+    <string name="试纸检测">app_name</string>
+    <string name="检测">试纸检测器</string>
 </resources>

@@ -60,13 +60,14 @@ import static org.opencv.imgproc.Imgproc.resize;
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static String TAG = "MainActivity";
-        private Button bt1, bt2, bt3;
+        private Button bt1, bt2, bt3, btSave;
     private ImageView iv1, iv2, iv3;//iv2,iv3;
     private Mat srcmat1, dstmat, hsvMat, topMat;
     private Bitmap bitmap, contours_bmap;
     private Bitmap bmap;
     JavaCameraView javaCameraView;
     Mat mRGBA, mRGBAT, resizeimage;        //Mat resizeimage = new Mat();
+    Mat matSave;
     private static final int MY_CAMERA_REQUEST_CODE = 100;
     int activeCamera = CameraBridgeViewBase.CAMERA_ID_BACK;// or front
     int SELECT_PICTURE = 200;
@@ -153,6 +154,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         bt1 = findViewById(R.id.button);
         bt2 = findViewById(R.id.button2);
         bt3 = findViewById(R.id.button3);
+        btSave = findViewById(R.id.button4);
         iv1 = findViewById(R.id.imageView);
         iv2 = findViewById(R.id.imageView3);
    //     iv2 = findViewById(R.id.imageView2);
@@ -161,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     //    srcmat2 = new Mat();
         dstmat = new Mat();
         topMat = new Mat();
+        matSave = new Mat();
 
 
         bt3.setOnClickListener(new View.OnClickListener() {
@@ -248,13 +251,15 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                        srcmat1.width() - 2, srcmat1.height() - 2), new Scalar( 255, 0, 0 ), 1
 //                );
 //
-                Imgproc.rectangle(srcmat1, new Point(0, 0), new Point(srcmat1.width()  , srcmat1.height() ), new Scalar( 0, 255, 0 ), 3);
 
 
+                //Imgproc.rectangle(srcmat1, new Point(0, 0), new Point(srcmat1.width()  , srcmat1.height() ), new Scalar( 0, 0, 255 ), 3);
+
+                matSave = srcmat1.clone();
                 bitmap = Bitmap.createBitmap(srcmat1.width(), srcmat1.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(srcmat1, bitmap);
 //                iv1.setImageBitmap(bitmap);
-                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "origin" , "yourDescription");
+//                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "origin" , "yourDescription");
                 iv1.setImageBitmap(bitmap);
             }
         });
@@ -328,7 +333,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_GRAY2BGR);
                 //Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_RGB2BGR);
                 //Imgproc.cvtColor(hsvMat, dstmat, Imgproc.COLOR_HSV2BGR);
-                Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 255, 0, 0 ), 3);
+                Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 0, 0, 255 ), 3);
                 bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(dstmat, bitmap);
 //                iv1.setImageBitmap(bitmap);
@@ -337,6 +342,16 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             }
         });
 
+        btSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                bitmap = Bitmap.createBitmap(matSave.width(), matSave.height(), Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(matSave, bitmap);
+//                iv1.setImageBitmap(bitmap);
+                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "origin" , "yourDescription");
+//                iv1.setImageBitmap(bitmap);
+            }
+        });
 
     }
 
@@ -459,11 +474,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         int w = mRGBA.width();
         int h = mRGBA.height();
         Imgproc.rectangle(mRGBA, new Point(w * 1 / 3, 0), new Point(
-                w * 2 / 3, h), new Scalar( 255, 0, 0 ), 5
+                w * 2 / 3, h), new Scalar( 0, 0, 255 ), 5
         );
 
         Imgproc.rectangle(mRGBA, new Point(w * 12 / 24, h * 10 / 24), new Point(
-                w * 13 / 24, h * 16/ 24), new Scalar( 0, 255, 0 ), 3);
+                w * 13 / 24, h * 16/ 24), new Scalar( 0, 0, 255 ), 3);
 
         mRGBAT = mRGBA.t();
         Core.flip(mRGBA.t(), mRGBAT, 1);
