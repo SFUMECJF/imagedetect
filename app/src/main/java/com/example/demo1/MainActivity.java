@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private Bitmap resultBitmap;
     //Mat mRgba, mHsv,hierarchy,mHsvMask ,mDilated;
     Mat mRgba, mIntermediateMat, mGray, hierarchy;
+    Mat background;
     List<MatOfPoint> contours;
 
     BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(MainActivity.this) {
@@ -164,7 +165,14 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         dstmat = new Mat();
         topMat = new Mat();
         matSave = new Mat();
+        background = new Mat();
 
+        try {
+            background = Utils.loadResource(this, R.drawable.yellow);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        iv2.setImageBitmap();
 
         bt3.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -291,23 +299,32 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
 //                Core.inRange(hsvMat, new Scalar(110, 0, 0), new Scalar(160, 255, 255), srcmat1);
 
-                dstmat = Mat.ones(binaryMat.size(), CvType.CV_8UC1);
+//                dstmat = Mat.ones(binaryMat.size(), CvType.CV_8UC3);
+                Size scaleSize = new Size(iv1.getWidth(),iv1.getHeight());
+                resize(background, dstmat, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
+
+
                 int ch = dstmat.channels(); //Calculates number of channels (Grayscale: 1, RGB: 3, etc.)
-                if (ch == 1)
-                    Log.d(TAG, "channel : " );
-                for (int i = 0; i < dstmat.cols(); i++) {
+
+                Log.d(TAG, "channel : " + new String(String.valueOf(ch)));
+
+                for (int i = 0; i < srcmat1.cols(); i++) {
                     double ration = 0.0;
-                    for (int j = 0; j < dstmat.rows(); j++) {
+                    for (int j = 0; j < srcmat1.rows(); j++) {
                         double[] data = binaryMat.get(j, i); //Stores element in an array
                         ration += data[0] / 255;
-                        for (int k = 0; k < ch; k++) //Runs for the available number of channels
-                        {
-                            data[k] = 255; //Pixel modification done here
-                        }
-                        dstmat.put(j, i, data); //Puts element back into matrix
+//                        for (int k = 0; k < ch; k++) //Runs for the available number of channels
+//                        {
+//                            data[k] = 255; //Pixel modification done here
+//                        }
+//                        dstmat.put(j, i, data); //Puts element back into matrix
                     }
-                    double[] data = binaryMat.get(0, 0); //Stores element in an array
+
+                    double[] data = dstmat.get(0, 0); //Stores element in an array
                     data[0] = 0;
+                    data[1] = 0;
+                    data[2] = 0;
+
                     ration = ration / dstmat.rows();
                     //(index, i)
                     int index = (int) (dstmat.rows() * (1 - ration));
@@ -318,6 +335,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                         }
                     }
                 }
+
+
                 //Imgproc.threshold(dstmat,dstmat,125,255,Imgproc.THRESH_BINARY);
                 //Imgproc.adaptiveThreshold(dstmat,dstmat,255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 13, 5);
 //                Imgproc.line(srcmat1,new Point(0,dstmat.height()),new Point(dstmat.width(),0),new Scalar(255,0,0),4);
