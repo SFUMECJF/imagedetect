@@ -30,53 +30,101 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/topView"
+        android:layout_centerHorizontal="true"
+        android:textSize="32dp"
+        android:text="@string/待检测区域" />
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="match_parent"
         android:layout_height="100dp"
-        android:layout_below="@id/topView"
+        android:layout_below="@id/textView"
         android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/imageView"
+        android:layout_centerHorizontal="true"
+        android:textSize="32dp"
+        android:text="@string/处理结果" />
 
     <ImageView
         android:id="@+id/imageView3"
         android:layout_width="match_parent"
         android:layout_height="100dp"
-        android:layout_below="@id/imageView"
+        android:layout_below="@id/textView2"
         android:layout_centerHorizontal="true" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        >
+        <!--        android:layout_alignParentLeft="true"-->
+
+        <!--           android:layout_below="@id/imageView3"     -->
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="5dp"
+            android:textSize="25sp"
+            android:layout_marginRight="10dp"
+            android:layout_marginEnd="10dp"
+            android:text="相册" />
+
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="5dp"
+            android:textSize="25sp"
+            android:layout_marginRight="10dp"
+            android:layout_marginEnd="10dp"
+            android:text="相机" />
 
         <Button
             android:id="@+id/button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_toLeftOf="@id/button4"
-            android:text="处理" />
-
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="5dp"
+            android:textSize="25sp"
+            android:layout_marginRight="10dp"
+            android:text="处理"
+            android:layout_marginEnd="10dp" />
+<!--        android:layout_weight="1"-->
 
 
         <Button
-            android:id="@+id/button2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentBottom="true"
-            android:text="相册" />
-
-    <Button
-        android:id="@+id/button3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_toRightOf="@id/button2"
-        android:text="相机" />
-
-    <Button
         android:id="@+id/button4"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:text="保存" />
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="5dp"
+            android:text="保存"
+            android:textSize="25sp"
+            />
+
+    </LinearLayout>
+    <!--        android:layout_weight="1"-->
+
+
 </RelativeLayout>
 <!--<?xml version="1.0" encoding="utf-8"?>-->
 <!--<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"-->

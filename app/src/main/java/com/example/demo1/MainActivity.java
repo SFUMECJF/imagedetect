@@ -299,17 +299,19 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                Imgproc.cvtColor(dstmat, binaryMat, Imgproc.COLOR_BGR2GRAY);
                 hsvMat = srcmat1.clone();
 //                Mat resultMat = new Mat();
-                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
-                Core.inRange(hsvMat, new Scalar(110, 0, 0), new Scalar(160, 255, 255), srcmat1);
 
-                dstmat = Mat.ones(srcmat1.size(), CvType.CV_8UC1);
+                Imgproc.cvtColor(srcmat1, binaryMat, Imgproc.COLOR_BGR2GRAY);
+//                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
+//                Core.inRange(hsvMat, new Scalar(110, 0, 0), new Scalar(160, 255, 255), srcmat1);
+
+                dstmat = Mat.ones(binaryMat.size(), CvType.CV_8UC1);
                 int ch = dstmat.channels(); //Calculates number of channels (Grayscale: 1, RGB: 3, etc.)
                 if (ch == 1)
                     Log.d(TAG, "channel : " );
                 for (int i = 0; i < dstmat.cols(); i++) {
                     double ration = 0.0;
                     for (int j = 0; j < dstmat.rows(); j++) {
-                        double[] data = srcmat1.get(j, i); //Stores element in an array
+                        double[] data = binaryMat.get(j, i); //Stores element in an array
                         ration += data[0] / 255;
                         for (int k = 0; k < ch; k++) //Runs for the available number of channels
                         {
@@ -317,7 +319,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                         }
                         dstmat.put(j, i, data); //Puts element back into matrix
                     }
-                    double[] data = srcmat1.get(0, 0); //Stores element in an array
+                    double[] data = binaryMat.get(0, 0); //Stores element in an array
                     data[0] = 0;
                     ration = ration / dstmat.rows();
                     //(index, i)
@@ -346,6 +348,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_GRAY2BGR);
                 //Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_RGB2BGR);
                 //Imgproc.cvtColor(hsvMat, dstmat, Imgproc.COLOR_HSV2BGR);
+                Core.flip(dstmat, dstmat, 0);
                 Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 0, 0, 255 ), 3);
                 bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(dstmat, bitmap);
@@ -486,9 +489,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         int w = mRGBA.width();
         int h = mRGBA.height();
-        Imgproc.rectangle(mRGBA, new Point(w * 1 / 3, 0), new Point(
-                w * 2 / 3, h), new Scalar( 0, 0, 255 ), 5
-        );
+//        Imgproc.rectangle(mRGBA, new Point(w * 1 / 3, 0), new Point(
+//                w * 2 / 3, h), new Scalar( 0, 0, 255 ), 5
+//        );
 
         Imgproc.rectangle(mRGBA, new Point(w * 12 / 24, h * 10 / 24), new Point(
                 w * 13 / 24, h * 16/ 24), new Scalar( 0, 0, 255 ), 3);
