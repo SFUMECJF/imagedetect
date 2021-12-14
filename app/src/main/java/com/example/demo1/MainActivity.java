@@ -61,13 +61,14 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 {
     private static String TAG = "MainActivity";
         private Button bt1, bt2, bt3, btSave;
-    private ImageView iv1, iv2, iv3;//iv2,iv3;
+    private ImageView blockView, resultView, topView;//resultView,topView;
     private Mat srcmat1, dstmat, hsvMat, topMat;
     private Bitmap bitmap, contours_bmap;
     private Bitmap bmap;
     JavaCameraView javaCameraView;
     Mat mRGBA, mRGBAT, resizeimage;        //Mat resizeimage = new Mat();
     Mat matSave;
+    Mat origin, block, detectRegion, detectRegionLine, detectRegionCurve, resultBackground;
     private static final int MY_CAMERA_REQUEST_CODE = 100;
     int activeCamera = CameraBridgeViewBase.CAMERA_ID_BACK;// or front
     int SELECT_PICTURE = 200;
@@ -156,10 +157,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         bt2 = findViewById(R.id.button2);
         bt3 = findViewById(R.id.button3);
         btSave = findViewById(R.id.button4);
-        iv1 = findViewById(R.id.imageView);
-        iv2 = findViewById(R.id.imageView3);
-   //     iv2 = findViewById(R.id.imageView2);
-        iv3 = findViewById(R.id.topView);
+        blockView = findViewById(R.id.imageView);
+        resultView = findViewById(R.id.imageView3);
+   //     resultView = findViewById(R.id.imageView2);
+        topView = findViewById(R.id.topView);
         srcmat1 = new Mat();
     //    srcmat2 = new Mat();
         dstmat = new Mat();
@@ -167,12 +168,28 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         matSave = new Mat();
         background = new Mat();
 
+
+
+
+        resultBackground = new Mat();
         try {
-            background = Utils.loadResource(this, R.drawable.yellow);
+            detectRegionLine = Utils.loadResource(this, R.drawable.white);
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        iv2.setImageBitmap();
+
+        try {
+            background = Utils.loadResource(this, R.drawable.white);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            resultBackground = Utils.loadResource(this, R.drawable.yellow);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        resultView.setImageBitmap();
 
         bt3.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -183,8 +200,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 //Create the rectangle
                 //        Imgproc.rectangle(mRGBA, new Point(w * 12 / 24, h * 11 / 24), new Point(
                 //                w * 13 / 24, h * 15/ 24), new Scalar( 0, 255, 0 ), 3);
-//                Rect roi = new Rect( mRGBA.width()  / 3, 0, mRGBA.width() / 3, mRGBA.height());
-                Rect roi = new Rect( mRGBA.width() * 12 / 24, mRGBA.height() * 10 / 24, mRGBA.width() * 1/ 24, mRGBA.height() * 6/ 24);
+
+                Rect roi = new Rect( mRGBA.width()  / 3, 0, mRGBA.width() / 3, mRGBA.height());
+//                Rect roi = new Rect( mRGBA.width() * 12 / 24, mRGBA.height() * 10 / 24, mRGBA.width() * 1/ 24, mRGBA.height() * 6/ 24);
+
+//                Imgproc.rectangle(mRGBA, new Point(w * 1 / 3, 0), new Point(
+//                        w * 2 / 3, h), new Scalar( 0, 0, 255 ), 5
+//                );
 
                 //Create the cv::Mat with the ROI you need, where "image" is the cv::Mat you want to extract the ROI from
                 srcmat1 = (new Mat(mRGBA, roi)).t();
@@ -218,8 +240,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                srcmat1  = mRgba;
 
 
-                Size scaleSize = new Size(iv1.getWidth(),iv1.getHeight());
-                resize(srcmat1, srcmat1, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
+                Size scaleSize = new Size(blockView.getWidth(),blockView.getHeight());
+                resize(block, srcmat1, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
 
 //                Mat resultMat = srcmat1.clone();
 //                hsvMat = new Mat();
@@ -235,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //
 //                Imgproc.cvtColor(resultMat, resultMat, Imgproc.COLOR_RGB2BGR);
 //                Utils.matToBitmap(resultMat, contours_bmap);
-//                iv1.setImageBitmap(contours_bmap);
+//                blockView.setImageBitmap(contours_bmap);
 
 //                contours = new ArrayList<>();
 //                hsvMat = new Mat();
@@ -252,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //
 //                Imgproc.cvtColor(resultMat, resultMat, Imgproc.COLOR_RGB2BGR);
 //                Utils.matToBitmap(resultMat, resultBitmap);
-//                iv1.setImageBitmap(resultBitmap);
+//                blockView.setImageBitmap(resultBitmap);
 
 
 //                Imgproc.rectangle(srcmat1, new Point(2, 2), new Point(
@@ -266,9 +288,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 matSave = srcmat1.clone();
                 bitmap = Bitmap.createBitmap(srcmat1.width(), srcmat1.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(srcmat1, bitmap);
-//                iv1.setImageBitmap(bitmap);
+//                blockView.setImageBitmap(bitmap);
 //                MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "origin" , "yourDescription");
-                iv1.setImageBitmap(bitmap);
+                blockView.setImageBitmap(bitmap);
             }
         });
 
@@ -300,7 +322,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                Core.inRange(hsvMat, new Scalar(110, 0, 0), new Scalar(160, 255, 255), srcmat1);
 
 //                dstmat = Mat.ones(binaryMat.size(), CvType.CV_8UC3);
-                Size scaleSize = new Size(iv1.getWidth(),iv1.getHeight());
+                Size scaleSize = new Size(blockView.getWidth(),blockView.getHeight());
                 resize(background, dstmat, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
 
 
@@ -354,12 +376,30 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_GRAY2BGR);
                 //Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_RGB2BGR);
                 //Imgproc.cvtColor(hsvMat, dstmat, Imgproc.COLOR_HSV2BGR);
-                Core.flip(dstmat, dstmat, 0);
-                Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 0, 0, 255 ), 3);
-                bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
-                Utils.matToBitmap(dstmat, bitmap);
-//                iv1.setImageBitmap(bitmap);
-                iv2.setImageBitmap(bitmap);
+
+//                resultBackground = Mat.ones(resultView.getHeight(), resultView.getWidth(), CvType.CV_8UC3);
+                resize(resultBackground, resultBackground, new Size(resultView.getWidth(), resultView.getHeight()));
+                Imgproc.rectangle(resultBackground, new Point(15, 10), new Point(dstmat.width() - 10, dstmat.height() - 10), new Scalar( 255, 255, 255 ), 3);
+//                Imgproc.putText(resultBackground,"T",new Point(dstmat.width() - 10 + 2,dstmat.height() - 10 + 2),2,2,new Scalar(255,0,0),3);
+
+                Imgproc.putText(resultBackground,"T",new Point(resultBackground.width() /2,dstmat.height() + 35),2,2,new Scalar(0,0,0),3);
+                Imgproc.putText(resultBackground,"C",new Point(resultBackground.width() /2 + 40,dstmat.height() + 35),2,2,new Scalar(0,0,0),3);
+                Imgproc.line(resultBackground,new Point(resultBackground.width() /2 + 20,0),new Point(resultBackground.width() /2 + 20,dstmat.height()),new Scalar(255,0,0),4);
+                Imgproc.line(resultBackground,new Point(resultBackground.width() /2 + 40 + 20, 0),new Point(resultBackground.width() /2 + 40 + 20,dstmat.height()),new Scalar(255,0,0),4);
+
+                Imgproc.rectangle(resultBackground, new Point(15, dstmat.height() + 60), new Point(15 + dstmat.width() - 10, dstmat.height() + 60 + dstmat.height() - 10), new Scalar( 255, 255, 255 ), 3);
+//                Imgproc.putText(resultBackground,"反应强度",new Point(resultBackground.width() /2,dstmat.height() + 60 + dstmat.height() - 10),2,2,new Scalar(0,0,0),3);
+
+
+                //                Core.flip(dstmat, dstmat, 0);
+//                Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 0, 0, 255 ), 3);
+//                bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
+//                Utils.matToBitmap(dstmat, bitmap);
+////                blockView.setImageBitmap(bitmap);
+//                resultView.setImageBitmap(bitmap);
+
+                ivSetMat(resultView, resultBackground);
+
 
             }
         });
@@ -369,9 +409,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             public void onClick(View view) {
                 bitmap = Bitmap.createBitmap(matSave.width(), matSave.height(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(matSave, bitmap);
-//                iv1.setImageBitmap(bitmap);
+//                blockView.setImageBitmap(bitmap);
                 MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "origin" , "yourDescription");
-//                iv1.setImageBitmap(bitmap);
+//                blockView.setImageBitmap(bitmap);
             }
         });
 
@@ -392,6 +432,54 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         startActivityForResult(Intent.createChooser(i, "Select Picture"), SELECT_PICTURE);
     }
 
+
+
+    void ivSetMat(ImageView iv, Mat mat) {
+        Mat temp = new Mat();
+        Bitmap tempBmap = Bitmap.createBitmap(iv.getWidth(),  iv.getHeight(), Bitmap.Config.ARGB_8888);
+        resize(mat, temp, new Size(iv.getWidth(),  iv.getHeight()));
+        Utils.matToBitmap(temp, tempBmap);
+////                blockView.setImageBitmap(bitmap);
+        iv.setImageBitmap(tempBmap);
+    }
+    //    RETR_EXTERNAL:表示只检测最外层轮廓，对所有轮廓设置hierarchy[i][2]=hierarchy[i][3]=-1   检测效果不好
+//    RETR_LIST:提取所有轮廓，并放置在list中，检测的轮廓不建立等级关系   效果可以
+//    RETR_CCOMP:提取所有轮廓，并将轮廓组织成双层结构(two-level hierarchy),顶层为连通域的外围边界，次层位内层边界
+//    RETR_TREE:提取所有轮廓并重新建立网状轮廓结构
+//    RETR_FLOODFILL：官网没有介绍，应该是洪水填充法
+    Mat myContours(Mat src) {
+
+        contours = new ArrayList<MatOfPoint>();
+        hierarchy = new Mat();
+        Imgproc.Canny(src, mIntermediateMat, 70, 105); // 20  35的值不错，再小的值，噪音会特别大，处理也很麻烦。 最好能只处理submat
+        // 70   105现在不错，能够找到方框。
+        // canny 这里的阈值调整非常重要。后续能否识别到轮廓，识别到什么轮廓都和这里的设置有关系。
+        Imgproc.findContours(mIntermediateMat, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
+
+        hierarchy.release();
+
+//        ivSetMat(resultView, mIntermediateMat);
+//        return mIntermediateMat;
+        for (int contourIdx = 0; contourIdx < contours.size(); contourIdx++) {
+            MatOfPoint2f approxCurve = new MatOfPoint2f();
+            MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(contourIdx).toArray());
+            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
+            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
+
+            Rect rect = Imgproc.boundingRect(points);
+            double height = rect.height;
+            double width = rect.width;
+
+            if (src.width() / 2 <= rect.x + width && src.height() / 2 <= rect.y + height && height > 30 && width < 400 && width > 100) {// width 横向   height 纵向 竖的  height < 200 &&
+                Imgproc.rectangle(src, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0, 0), 3);
+//                Imgproc.putText(src, "contours", rect.tl(), 0, 2, new Scalar(0, 255, 255), 4);
+                block = new Mat(src, rect);
+            }
+        }
+
+        return src;
+    }
     // this function is triggered when user
     // selects the image from the imageChooser
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -400,7 +488,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             CropImage.ActivityResult result = CropImage.getActivityResult(data);
             if (resultCode == RESULT_OK) {
                 Uri resultUri = result.getUri();
-                iv1.setImageURI(resultUri);
+                blockView.setImageURI(resultUri);
 
                 try {
                     Bitmap bmp = null;
@@ -420,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
         if (requestCode == 100) {
             Bitmap captureImage = (Bitmap) data.getExtras().get("data");
-            iv2.setImageBitmap(captureImage);
+            resultView.setImageBitmap(captureImage);
         }
 
         if (resultCode == RESULT_OK) {
@@ -432,7 +520,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 Uri selectedImageUri = data.getData();
                 if (null != selectedImageUri) {
                     // update the preview image in the layout
-                    iv1.setImageURI(selectedImageUri);
+                    blockView.setImageURI(selectedImageUri);
                     try {
                         Bitmap bmp = null;
                         bmp = MediaStore.Images.Media.getBitmap(
@@ -495,12 +583,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         int w = mRGBA.width();
         int h = mRGBA.height();
-//        Imgproc.rectangle(mRGBA, new Point(w * 1 / 3, 0), new Point(
-//                w * 2 / 3, h), new Scalar( 0, 0, 255 ), 5
-//        );
+        Imgproc.rectangle(mRGBA, new Point(w * 1 / 3, 0), new Point(
+                w * 2 / 3, h), new Scalar( 0, 0, 255 ), 5
+        );
 
-        Imgproc.rectangle(mRGBA, new Point(w * 12 / 24, h * 10 / 24), new Point(
-                w * 13 / 24, h * 16/ 24), new Scalar( 0, 0, 255 ), 3);
+//        Imgproc.rectangle(mRGBA, new Point(w * 12 / 24, h * 10 / 24), new Point(
+//                w * 13 / 24, h * 16/ 24), new Scalar( 0, 0, 255 ), 3);
 
         mRGBAT = mRGBA.t();
         Core.flip(mRGBA.t(), mRGBAT, 1);
@@ -512,10 +600,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //        resize(mRGBAT, resizeimage, scaleSize , 0, 0,INTER_CUBIC  );//INTER_AREA
         //resizeimage = mRGBAT;
         //resize(mRGBAT, resizeimage, scaleSize , 0, 0,INTER_LINEAR  );
-//         bmap = Bitmap.createBitmap(iv3.getWidth() - 1, iv3.getHeight() - 1, Bitmap.Config.ARGB_8888);
+//         bmap = Bitmap.createBitmap(topView.getWidth() - 1, topView.getHeight() - 1, Bitmap.Config.ARGB_8888);
 //        Utils.matToBitmap(mRGBAT, bmap);
-////                iv1.setImageBitmap(bitmap);
-//        iv3.setImageBitmap(bmap);
+////                blockView.setImageBitmap(bitmap);
+//        topView.setImageBitmap(bmap);
 
 
 //        Rect rect_rect = new Rect();
@@ -548,12 +636,19 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+//                Mat small = mRGBAT.submat(new Rect(mRGBAT.width() * 1 / 3, mRGBAT.height() / 3, mRGBAT.width() * 1 / 3, mRGBAT.height() / 3));
+//                Mat temp = mRGBAT.clone();
+//                Mat smallClone = small.clone();
+//                smallClone = myContours(smallClone);
 
-                bmap = Bitmap.createBitmap(iv3.getWidth(),  iv3.getHeight(), Bitmap.Config.ARGB_8888);
-                resize(mRGBAT, topMat, new Size(iv3.getWidth(), iv3.getHeight()));
+//                smallClone.copyTo(small);
+                Mat temp = myContours(mRGBAT);
+
+                bmap = Bitmap.createBitmap(topView.getWidth(),  topView.getHeight(), Bitmap.Config.ARGB_8888);
+                resize(temp, topMat, new Size(topView.getWidth(), topView.getHeight()));
                 Utils.matToBitmap(topMat, bmap);
-////                iv1.setImageBitmap(bitmap);
-                iv3.setImageBitmap(bmap);
+////                blockView.setImageBitmap(bitmap);
+                topView.setImageBitmap(bmap);
 
             }
         });
@@ -671,7 +766,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //    private static String TAG = "MainActivity";
 //
 //    private Button bt1, bt2, bt3;
-//    private ImageView iv1, iv2;//iv2,iv3;
+//    private ImageView blockView, resultView;//resultView,topView;
 //    private Mat srcmat1,srcmat2,dstmat;
 //    private Bitmap bitmap;
 //    JavaCameraView javaCameraView;
@@ -750,10 +845,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //        bt1 = findViewById(R.id.button);
 //        bt2 = findViewById(R.id.button2);
 //        bt3 = findViewById(R.id.button3);
-//        iv1 = findViewById(R.id.imageView);
-//        iv2 = findViewById(R.id.imageView3);
-//   //     iv2 = findViewById(R.id.imageView2);
-//   //     iv3 = findViewById(R.id.imageView3);
+//        blockView = findViewById(R.id.imageView);
+//        resultView = findViewById(R.id.imageView3);
+//   //     resultView = findViewById(R.id.imageView2);
+//   //     topView = findViewById(R.id.imageView3);
 //        srcmat1 = new Mat();
 //    //    srcmat2 = new Mat();
 //        dstmat = new Mat();
@@ -853,8 +948,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 ////
 //                bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
 //                Utils.matToBitmap(dstmat, bitmap);
-////                iv1.setImageBitmap(bitmap);
-//                iv2.setImageBitmap(bitmap);
+////                blockView.setImageBitmap(bitmap);
+//                resultView.setImageBitmap(bitmap);
 //
 //            }
 //        });
@@ -885,7 +980,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //            CropImage.ActivityResult result = CropImage.getActivityResult(data);
 //            if (resultCode == RESULT_OK) {
 //                Uri resultUri = result.getUri();
-//                iv1.setImageURI(resultUri);
+//                blockView.setImageURI(resultUri);
 //
 //                try {
 //                    Bitmap bmp = null;
@@ -905,7 +1000,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //        }
 //        if (requestCode == 100) {
 //            Bitmap captureImage = (Bitmap) data.getExtras().get("data");
-//            iv2.setImageBitmap(captureImage);
+//            resultView.setImageBitmap(captureImage);
 //        }
 //
 //        if (resultCode == RESULT_OK) {
@@ -917,7 +1012,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                Uri selectedImageUri = data.getData();
 //                if (null != selectedImageUri) {
 //                    // update the preview image in the layout
-//                    iv1.setImageURI(selectedImageUri);
+//                    blockView.setImageURI(selectedImageUri);
 //                    try {
 //                        Bitmap bmp = null;
 //                        bmp = MediaStore.Images.Media.getBitmap(

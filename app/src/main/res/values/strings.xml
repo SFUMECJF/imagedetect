@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">试纸检测器</string>
-    <string name="试纸检测">app_name</string>
-    <string name="检测">试纸检测器</string>
-    <string name="待检测区域">待检测区域</string>
+    <string name="blockString">检测卡图像</string>
     <string name="处理结果">处理结果</string>
+    <string name="topString">请把检测卡放置于采集框中</string>
+    <string name="resultString">检测区处理结果</string>
+
 </resources>
