@@ -29,16 +29,19 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import android.content.Intent;
@@ -51,12 +54,15 @@ import android.widget.ImageView;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import static java.lang.Math.abs;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static org.opencv.imgproc.Imgproc.INTER_AREA;
 import static org.opencv.imgproc.Imgproc.INTER_CUBIC;
 import static org.opencv.imgproc.Imgproc.INTER_LINEAR;
 import static org.opencv.imgproc.Imgproc.resize;
 //import com.example.demo1.CustomOpenCVJavaCameraView;
-
+import org.opencv.features2d.SimpleBlobDetector;
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static String TAG = "MainActivity";
@@ -80,6 +86,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     Mat mRgba, mIntermediateMat, mGray, hierarchy;
     Mat background;
     List<MatOfPoint> contours;
+    int[] loc = new int[3];
+
+    Mat bigBlock;
+
 
     BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(MainActivity.this) {
         @Override
@@ -167,9 +177,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         topMat = new Mat();
         matSave = new Mat();
         background = new Mat();
-
-
-
+        bigBlock = new Mat();
+        loc[1] = 20;
+        loc[2] = 60;
 
         resultBackground = new Mat();
         try {
@@ -185,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
 
         try {
-            resultBackground = Utils.loadResource(this, R.drawable.yellow);
+            resultBackground = Utils.loadResource(this, R.drawable.white);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -241,7 +251,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
 
                 Size scaleSize = new Size(blockView.getWidth(),blockView.getHeight());
-                resize(block, srcmat1, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
+                resize(srcmat1, srcmat1, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
 
 //                Mat resultMat = srcmat1.clone();
 //                hsvMat = new Mat();
@@ -307,98 +317,169 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             @Override
             public void onClick(View view) {
 
-              //  Core.bitwise_or(srcmat1, srcmat2, dstmat);
-                //Imgproc.cvtColor(srcmat1, dstmat, Imgproc.COLOR_BGRA2GRAY);
-                Imgproc.medianBlur(srcmat1, srcmat1, 3);
-                Imgproc.GaussianBlur(srcmat1, srcmat1, new Size(11.0, 11.0), 4, 4);
+                resultBackground = background.clone();
+                resize(resultBackground, resultBackground, new Size(resultView.getWidth(), resultView.getHeight()) , 0, 0,INTER_AREA  );//INTER_AREA
 
-                Mat binaryMat = new Mat();
-//                Imgproc.cvtColor(dstmat, binaryMat, Imgproc.COLOR_BGR2GRAY);
-                hsvMat = srcmat1.clone();
-//                Mat resultMat = new Mat();
+                Mat blockMat = new Mat();
+                Imgproc.cvtColor(block,blockMat,Imgproc.COLOR_BGRA2BGR);// 应该是COLOR_BGRA2BGR， 如果是rga2bgr，颜色都不对了
+                resize(blockMat, blockMat, new Size(resultView.getWidth() - 20, resultView.getHeight() / 20 * 9) , 0, 0,INTER_AREA  );//INTER_AREA
 
-                Imgproc.cvtColor(srcmat1, binaryMat, Imgproc.COLOR_BGR2GRAY);
-//                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
-//                Core.inRange(hsvMat, new Scalar(110, 0, 0), new Scalar(160, 255, 255), srcmat1);
+                myCopy(blockMat, resultBackground, new Rect(10,10, resultView.getWidth() - 20, resultView.getHeight() / 20 * 9));
 
-//                dstmat = Mat.ones(binaryMat.size(), CvType.CV_8UC3);
-                Size scaleSize = new Size(blockView.getWidth(),blockView.getHeight());
-                resize(background, dstmat, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
+                Log.d(TAG, "block mat: " + new String(String.valueOf(blockMat.width())) + "  " + new String(String.valueOf(blockMat.height())));
 
+//                Imgproc.cvtColor(bigBlock,bigBlock,Imgproc.COLOR_BGRA2BGR);
+//                myRedBlob(bigBlock);//传的是CV8uC3  BGR  opencv用的bgr
 
-                int ch = dstmat.channels(); //Calculates number of channels (Grayscale: 1, RGB: 3, etc.)
+//                Imgproc.putText(resultBackground,"T",new Point(loc[1],resultView.getHeight() / 20 * 11),2,2,new Scalar(0,0,0),3);
+//                Imgproc.putText(resultBackground,"C",new Point(loc[2],resultView.getHeight() / 20 * 11),2,2,new Scalar(0,0,0),3);
 
-                Log.d(TAG, "channel : " + new String(String.valueOf(ch)));
+                Mat curve = myCurveFindTC(blockMat);
 
-                for (int i = 0; i < srcmat1.cols(); i++) {
-                    double ration = 0.0;
-                    for (int j = 0; j < srcmat1.rows(); j++) {
-                        double[] data = binaryMat.get(j, i); //Stores element in an array
-                        ration += data[0] / 255;
-//                        for (int k = 0; k < ch; k++) //Runs for the available number of channels
-//                        {
-//                            data[k] = 255; //Pixel modification done here
-//                        }
-//                        dstmat.put(j, i, data); //Puts element back into matrix
-                    }
-
-                    double[] data = dstmat.get(0, 0); //Stores element in an array
-                    data[0] = 0;
-                    data[1] = 0;
-                    data[2] = 0;
-
-                    ration = ration / dstmat.rows();
-                    //(index, i)
-                    int index = (int) (dstmat.rows() * (1 - ration));
-//                    dstmat.put(index, i, data);
-                    for (int k = index - 5; k < index + 5; k++) {
-                        for (int m = i - 5; m < i + 5; m++) {
-                            dstmat.put(k, m, data);
-                        }
-                    }
-                }
+                Imgproc.putText(resultBackground,"T",new Point(loc[1],resultView.getHeight() / 20 * 11),2,2,new Scalar(0,0,0),3);
+                Imgproc.putText(resultBackground,"C",new Point(loc[2],resultView.getHeight() / 20 * 11),2,2,new Scalar(0,0,0),3);
 
 
-                //Imgproc.threshold(dstmat,dstmat,125,255,Imgproc.THRESH_BINARY);
-                //Imgproc.adaptiveThreshold(dstmat,dstmat,255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 13, 5);
-//                Imgproc.line(srcmat1,new Point(0,dstmat.height()),new Point(dstmat.width(),0),new Scalar(255,0,0),4);
-//                Imgproc.putText(srcmat1,"I`m a cat",new Point(srcmat1.width() /2,srcmat1.height()/3),2,2,new Scalar(0,255,0),3);
-////                for (int i = 0; i < dstmat.width(); i++) {
-////
-////                    for (int j = 0; j < dstmat.height(); j++) {
-////                        ration += dstmat.get(i, j);
-////                    }
-////                }
-//
-//
-//
-//                dstmat = binaryMat;
-//                Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_GRAY2BGR);
-                //Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_RGB2BGR);
-                //Imgproc.cvtColor(hsvMat, dstmat, Imgproc.COLOR_HSV2BGR);
+                Core.flip(curve, curve, 0);
 
-//                resultBackground = Mat.ones(resultView.getHeight(), resultView.getWidth(), CvType.CV_8UC3);
-                resize(resultBackground, resultBackground, new Size(resultView.getWidth(), resultView.getHeight()));
-                Imgproc.rectangle(resultBackground, new Point(15, 10), new Point(dstmat.width() - 10, dstmat.height() - 10), new Scalar( 255, 255, 255 ), 3);
-//                Imgproc.putText(resultBackground,"T",new Point(dstmat.width() - 10 + 2,dstmat.height() - 10 + 2),2,2,new Scalar(255,0,0),3);
+//                findTC(curve);
 
-                Imgproc.putText(resultBackground,"T",new Point(resultBackground.width() /2,dstmat.height() + 35),2,2,new Scalar(0,0,0),3);
-                Imgproc.putText(resultBackground,"C",new Point(resultBackground.width() /2 + 40,dstmat.height() + 35),2,2,new Scalar(0,0,0),3);
-                Imgproc.line(resultBackground,new Point(resultBackground.width() /2 + 20,0),new Point(resultBackground.width() /2 + 20,dstmat.height()),new Scalar(255,0,0),4);
-                Imgproc.line(resultBackground,new Point(resultBackground.width() /2 + 40 + 20, 0),new Point(resultBackground.width() /2 + 40 + 20,dstmat.height()),new Scalar(255,0,0),4);
+                myDottedLine(curve, new Point(0, curve.height() / 4));
+                myDottedLine(curve, new Point(0, curve.height() / 4 * 2));
+                myDottedLine(curve, new Point(0, curve.height() / 4 * 3));
 
-                Imgproc.rectangle(resultBackground, new Point(15, dstmat.height() + 60), new Point(15 + dstmat.width() - 10, dstmat.height() + 60 + dstmat.height() - 10), new Scalar( 255, 255, 255 ), 3);
-//                Imgproc.putText(resultBackground,"反应强度",new Point(resultBackground.width() /2,dstmat.height() + 60 + dstmat.height() - 10),2,2,new Scalar(0,0,0),3);
-
-
-                //                Core.flip(dstmat, dstmat, 0);
-//                Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 0, 0, 255 ), 3);
-//                bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
-//                Utils.matToBitmap(dstmat, bitmap);
-////                blockView.setImageBitmap(bitmap);
-//                resultView.setImageBitmap(bitmap);
+                myCopy(curve, resultBackground, new Rect(resultView.getHeight() / 20 * 12,10, -1, -1));
 
                 ivSetMat(resultView, resultBackground);
+
+//                Mat dst = Mat.ones(new Size(resultView.getWidth(),resultView.getHeight()), CvType.CV_8UC3);
+//                Mat imageROI  = new Mat(dst, new Rect(0,0, 80, 80));
+//                Mat imageROI  = dst.submat(new Rect(0,0, 80, 80));
+////                blockMat.copyTo(imageROI);
+//                myCopy(blockMat, dst, new Rect(0,0, 80, 80));
+//
+//
+//
+//                Rect blockRect = new Rect(15, 15, resultView.getWidth() - 40, 80);
+//                resize(resultBackground, resultBackground, new Size(resultView.getWidth(), resultView.getHeight()) , 0, 0,INTER_AREA  );//INTER_AREA
+//                resize(blockMat, blockMat, new Size(resultView.getWidth() -40, 80) , 0, 0,INTER_AREA  );//INTER_AREA
+//                Log.d(TAG, "block type is ： " + new String(String.valueOf(blockMat.type())));//block type is ： 24   CV_8UC4
+//                Log.d(TAG, "resultBackground type is ： " + new String(String.valueOf(resultBackground.type())));//resultBackground type is ： 16 CV_8UC3
+//
+////                Mat temp = new Mat();
+//                // submat也是copy，不是引用
+////                temp = resultBackground.submat(new Rect(0,0, 80, 80));
+//                Mat imageROI  = new Mat(resultBackground, new Rect(0,0, 80, 80));
+////                blockMat.copyTo(imageROI);
+//                Imgproc.GaussianBlur(imageROI, imageROI, new Size(55, 55), 55);
+//                ivSetMat(resultView, resultBackground);
+//                ivSetMat(resultView, block);
+//
+//
+//              //  Core.bitwise_or(srcmat1, srcmat2, dstmat);
+//                //Imgproc.cvtColor(srcmat1, dstmat, Imgproc.COLOR_BGRA2GRAY);
+//                srcmat1 = block;
+//                Imgproc.medianBlur(srcmat1, srcmat1, 3);
+//                Imgproc.GaussianBlur(srcmat1, srcmat1, new Size(11.0, 11.0), 4, 4);
+//
+//                Mat binaryMat = new Mat();
+////                Imgproc.cvtColor(dstmat, binaryMat, Imgproc.COLOR_BGR2GRAY);
+//                hsvMat = srcmat1.clone();
+////                Mat resultMat = new Mat();
+//
+//                Imgproc.cvtColor(srcmat1, binaryMat, Imgproc.COLOR_BGR2GRAY);
+////                Imgproc.cvtColor(srcmat1, hsvMat, Imgproc.COLOR_BGR2HSV);
+////                Core.inRange(hsvMat, new Scalar(110, 0, 0), new Scalar(160, 255, 255), srcmat1);
+//
+////                dstmat = Mat.ones(binaryMat.size(), CvType.CV_8UC3);
+//                Size scaleSize = new Size(blockView.getWidth(),blockView.getHeight());
+//                resize(background, dstmat, scaleSize , 0, 0,INTER_AREA  );//INTER_AREA
+//
+//
+//                int ch = dstmat.channels(); //Calculates number of channels (Grayscale: 1, RGB: 3, etc.)
+//
+//                Log.d(TAG, "channel : " + new String(String.valueOf(ch)));
+//
+//                for (int i = 0; i < srcmat1.cols(); i++) {
+//                    double ration = 0.0;
+//                    for (int j = 0; j < srcmat1.rows(); j++) {
+//                        double[] data = binaryMat.get(j, i); //Stores element in an array
+//                        ration += data[0] / 255;
+////                        for (int k = 0; k < ch; k++) //Runs for the available number of channels
+////                        {
+////                            data[k] = 255; //Pixel modification done here
+////                        }
+////                        dstmat.put(j, i, data); //Puts element back into matrix
+//                    }
+//
+//                    double[] data = dstmat.get(0, 0); //Stores element in an array
+//                    data[0] = 0;
+//                    data[1] = 0;
+//                    data[2] = 0;
+//
+//                    ration = ration / dstmat.rows();
+//                    //(index, i)
+//                    int index = (int) (dstmat.rows() * (1 - ration));
+////                    dstmat.put(index, i, data);
+//                    for (int k = index - 5; k < index + 5; k++) {
+//                        for (int m = i - 5; m < i + 5; m++) {
+//                            dstmat.put(k, m, data);
+//                        }
+//                    }
+//                }
+//
+//
+//                //Imgproc.threshold(dstmat,dstmat,125,255,Imgproc.THRESH_BINARY);
+//                //Imgproc.adaptiveThreshold(dstmat,dstmat,255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 13, 5);
+////                Imgproc.line(srcmat1,new Point(0,dstmat.height()),new Point(dstmat.width(),0),new Scalar(255,0,0),4);
+////                Imgproc.putText(srcmat1,"I`m a cat",new Point(srcmat1.width() /2,srcmat1.height()/3),2,2,new Scalar(0,255,0),3);
+//////                for (int i = 0; i < dstmat.width(); i++) {
+//////
+//////                    for (int j = 0; j < dstmat.height(); j++) {
+//////                        ration += dstmat.get(i, j);
+//////                    }
+//////                }
+////
+////
+////
+////                dstmat = binaryMat;
+////                Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_GRAY2BGR);
+//                //Imgproc.cvtColor(binaryMat, dstmat, Imgproc.COLOR_RGB2BGR);
+//                //Imgproc.cvtColor(hsvMat, dstmat, Imgproc.COLOR_HSV2BGR);
+//
+////                resultBackground = Mat.ones(resultView.getHeight(), resultView.getWidth(), CvType.CV_8UC3);
+//                int backgroundStartX = 0;
+//                int backgroundStartY = 0;
+//                int backgroundWidth = resultView.getWidth();
+//                int backgroundHeight = resultView.getHeight();
+//
+//                resize(resultBackground, resultBackground, new Size(resultView.getWidth(), resultView.getHeight()));
+//                Imgproc.rectangle(resultBackground, new Point(10, 10), new Point(dstmat.width() - 10, dstmat.height() - 10), new Scalar( 255, 255, 255 ), 3);
+////                Imgproc.putText(resultBackground,"T",new Point(dstmat.width() - 10 + 2,dstmat.height() - 10 + 2),2,2,new Scalar(255,0,0),3);
+//
+//                Mat small = resultBackground.submat(new Rect(10, 10, backgroundWidth - 11, 99));
+////                Mat temp = small.clone();
+////                Mat smallClone = small.clone();
+////                smallClone = myContours(smallClone);
+//                block.copyTo(small);
+//
+//                Imgproc.putText(resultBackground,"T",new Point(resultBackground.width() /2,dstmat.height() + 35),2,2,new Scalar(0,0,0),3);
+//                Imgproc.putText(resultBackground,"C",new Point(resultBackground.width() /2 + 40,dstmat.height() + 35),2,2,new Scalar(0,0,0),3);
+////                Imgproc.line(resultBackground,new Point(resultBackground.width() /2 + 20,0),new Point(resultBackground.width() /2 + 20,dstmat.height()),new Scalar(255,0,0),4);
+////                Imgproc.line(resultBackground,new Point(resultBackground.width() /2 + 40 + 20, 0),new Point(resultBackground.width() /2 + 40 + 20,dstmat.height()),new Scalar(255,0,0),4);
+//
+//                Imgproc.rectangle(resultBackground, new Point(15, dstmat.height() + 60), new Point(15 + dstmat.width() - 10, dstmat.height() + 60 + dstmat.height() - 10), new Scalar( 255, 255, 255 ), 3);
+////                Imgproc.putText(resultBackground,"反应强度",new Point(resultBackground.width() /2,dstmat.height() + 60 + dstmat.height() - 10),2,2,new Scalar(0,0,0),3);
+//
+////                dstmat.copyTo(resultBackground);
+//                //                Core.flip(dstmat, dstmat, 0);
+////                Imgproc.rectangle(dstmat, new Point(0, 0), new Point(dstmat.width(), dstmat.height()), new Scalar( 0, 0, 255 ), 3);
+////                bitmap = Bitmap.createBitmap(dstmat.width(), dstmat.height(), Bitmap.Config.ARGB_8888);
+////                Utils.matToBitmap(dstmat, bitmap);
+//////                blockView.setImageBitmap(bitmap);
+////                resultView.setImageBitmap(bitmap);
+//
+//                ivSetMat(resultView, resultBackground);
 
 
             }
@@ -442,17 +523,20 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 ////                blockView.setImageBitmap(bitmap);
         iv.setImageBitmap(tempBmap);
     }
+    // 为什么RETR_EXTERNAL没有反应呢？感觉用这种方法应该就没问题了才对。
     //    RETR_EXTERNAL:表示只检测最外层轮廓，对所有轮廓设置hierarchy[i][2]=hierarchy[i][3]=-1   检测效果不好
 //    RETR_LIST:提取所有轮廓，并放置在list中，检测的轮廓不建立等级关系   效果可以
 //    RETR_CCOMP:提取所有轮廓，并将轮廓组织成双层结构(two-level hierarchy),顶层为连通域的外围边界，次层位内层边界
 //    RETR_TREE:提取所有轮廓并重新建立网状轮廓结构
 //    RETR_FLOODFILL：官网没有介绍，应该是洪水填充法
     Mat myContours(Mat src) {
+        Mat srcOrigin = src.clone();
+        Rect resRect = new Rect(0 , 0, src.width() * 5 / 24, src.height() * 1/ 24);
 
         contours = new ArrayList<MatOfPoint>();
         hierarchy = new Mat();
         Imgproc.Canny(src, mIntermediateMat, 70, 105); // 20  35的值不错，再小的值，噪音会特别大，处理也很麻烦。 最好能只处理submat
-        // 70   105现在不错，能够找到方框。
+        // 70   105现在不错，能够找到方框, 但是有红色的时候无法识别。
         // canny 这里的阈值调整非常重要。后续能否识别到轮廓，识别到什么轮廓都和这里的设置有关系。
         Imgproc.findContours(mIntermediateMat, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
 
@@ -471,15 +555,480 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             double height = rect.height;
             double width = rect.width;
 
-            if (src.width() / 2 <= rect.x + width && src.height() / 2 <= rect.y + height && height > 30 && width < 400 && width > 100) {// width 横向   height 纵向 竖的  height < 200 &&
-                Imgproc.rectangle(src, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0, 0), 3);
+            // src.width() / 2 >= rect.x && src.height() / 2 >= rect.y && src.width() / 2 <= rect.x + width && src.height() / 2 <= rect.y + height &&
+            if (height > 30 && width < 400 && width > 100) {// width 横向   height 纵向 竖的  height < 200 &&
+                // (abs(src.width() / 2 - rect.x) < 80 && abs(src.height() / 2 - rect.y) < 80) ||
+                if ( rect.x < src.width() / 2 - 30 && (abs(src.width() / 2 - rect.x - rect.width) < 80 && abs(src.height() / 2 - rect.y - rect.height) < 80)) {
+
+                    if (resRect.x > rect.x || resRect.x == 0)
+                        resRect.x = rect.x;
+                    if (resRect.y > rect.y || resRect.y == 0)
+                        resRect.y = rect.y;
+//                    if (resRect.width < rect.width) {
+//                        resRect.width += rect.width;
+//                        resRect.width = min(rect.width, src.width() / 20 * 7);
+//                    }
+//
+//                    resRect.height = max(resRect.height, rect.height);
+//                    Imgproc.rectangle(src, new Point(resRect.x, resRect.y), new Point(resRect.x + resRect.width, resRect.y + resRect.height), new Scalar(0, 255, 0, 0), 3);
+                }
+
 //                Imgproc.putText(src, "contours", rect.tl(), 0, 2, new Scalar(0, 255, 255), 4);
-                block = new Mat(src, rect);
+
             }
+        }
+        if (resRect.x != 0) {
+            Imgproc.rectangle(src, new Point(resRect.x, resRect.y), new Point(resRect.x + resRect.width, resRect.y + resRect.height), new Scalar(0, 255, 0, 0), 3);
+            block = new Mat(srcOrigin, resRect);
+            bigBlock = new Mat(srcOrigin, new Rect(resRect.x, resRect.y - 20, resRect.width, resRect.height + 40));
         }
 
         return src;
     }
+
+    Mat myCopy(Mat src, Mat dst, Rect rect) {
+        int ch = src.channels(); //Calculates number of channels (Grayscale: 1, RGB: 3, etc.)
+                for (int i = 0; i < src.cols(); i++) {
+                    for (int j = 0; j < src.rows(); j++) {
+                        double[] data = src.get(j, i); //Stores element in an array
+                        dst.put(j + rect.x, i + rect.y, data); //Puts element back into matrix
+                    }
+                }
+                return dst;
+    }
+
+    Mat myCurveFindTC(Mat src) {
+
+        Mat binaryMat = new Mat();
+        Imgproc.cvtColor(src, binaryMat, Imgproc.COLOR_BGR2GRAY);
+
+        Mat result = new Mat();
+        try {
+            result = Utils.loadResource(this, R.drawable.white);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        resize(result, result, src.size());
+        Log.d(TAG, "result channel : " + new String(String.valueOf(result.channels())));
+
+
+        int ch = binaryMat.channels(); //Calculates number of channels (Grayscale: 1, RGB: 3, etc.)
+        double[] rationLoc = new double[binaryMat.cols() + 1];
+        double maxRation = 0;
+
+        for (int i = 0; i < binaryMat.cols(); i++) {
+            double ration = 0.0;
+            for (int j = 0; j < binaryMat.rows(); j++) {
+                double[] data = binaryMat.get(j, i); //Stores element in an array
+                ration += data[0] / 255;
+                rationLoc[i] = ration;
+                if (ration > maxRation)
+                    maxRation = ration;
+//                        for (int k = 0; k < ch; k++) //Runs for the available number of channels
+//                        {
+//                            data[k] = 255; //Pixel modification done here
+//                        }
+//                result.put(j, i, data); //Puts element back into matrix
+
+            }
+            double[] data = result.get(0, 0); //Stores element in an array
+            data[0] = 0;
+            data[1] = 0;
+            data[2] = 0;
+
+            ration = ration / result.rows();
+            //(index, i)
+            int index = (int) (result.rows() * (1 - ration));
+//                    dstmat.put(index, i, data);
+            for (int k = index - 5; k < index + 5; k++) {
+                for (int m = i - 5; m < i + 5; m++) {
+                    result.put(k, m, data);
+                }
+            }
+        }
+
+        int start = 0, end = 0;
+        for (int i = (int) (0.9 * binaryMat.cols()); i > binaryMat.cols() / 2; i--) {
+            if (rationLoc[i] < 0.5 * maxRation) {
+                end = i;
+                break;
+            }
+        }
+        for (int i = end - 15; i > 0; i--) {
+            if (rationLoc[i] > 0.5 * maxRation) {
+                start = i;
+                break;
+            }
+        }
+        loc[2] = start + (end - start)/ 2;
+
+        int endT = 0;
+        int startT = 0;
+        for (int i = start - 15; i > 0; i--) {
+            if (rationLoc[i] < 0.5 * maxRation) {
+                endT = i;
+                break;
+            }
+        }
+        for (int i = endT - 15; i > 0; i--) {
+            if (rationLoc[i] > 0.5 * maxRation) {
+                startT = i;
+                break;
+            }
+        }
+        loc[1] = startT + (endT - startT) / 2;
+        Log.d(TAG, "length   loc  " + new String(String.valueOf(binaryMat.cols())) + "  " + new String(String.valueOf(loc[1])) + "  " + new String(String.valueOf(loc[2])));
+
+        return result;
+    }
+
+    void findTC(Mat src) {
+        Mat binaryMat = new Mat();
+        binaryMat = src.clone();
+
+        double[] rationLoc = new double[binaryMat.cols() + 1];
+        double maxRation = 0;
+
+        for (int i = 0; i < binaryMat.cols(); i++) {
+            double ration = 0.0;
+            for (int j = 0; j < binaryMat.rows(); j++) {
+                double[] data = binaryMat.get(j, i); //Stores element in an array
+                ration += data[0];
+
+            }
+            rationLoc[i] = ration;
+            if (ration > maxRation)
+                maxRation = ration;
+
+        }
+
+        int start = 0, end = 0;
+        int endC = 0;
+        for (int i = (int) (0.8 * binaryMat.cols()); i > binaryMat.cols() / 2; i--) {
+            if (rationLoc[i] < maxRation / 2) {
+                end = i;
+                break;
+            }
+        }
+        for (int i = binaryMat.cols() / 2; i < 0.9 * binaryMat.cols(); i++) {
+            if (rationLoc[i] < maxRation / 2) {
+                start = i;
+                break;
+            }
+        }
+        loc[2] = start + end / 2;
+        endC = start;
+        start = 0;
+        end = 0;
+        for (int i = (int)(0.05 * binaryMat.cols()); i < binaryMat.cols() / 2; i++) {
+            if (rationLoc[i] < 0.7 * maxRation) {
+                start = i;
+                break;
+            }
+        }
+        for (int i = binaryMat.cols() / 2; i > 0; i--) {
+            if (rationLoc[i] < 0.7 * maxRation) {
+                end = i;
+                break;
+            }
+        }
+        loc[1] = start + end / 2;
+
+
+
+        Log.d(TAG, "loc  " + new String(String.valueOf(loc[1])) + "  " + new String(String.valueOf(loc[2])));
+
+    }
+    void myDottedLine(Mat src, Point start) {
+        for (int i = 0; i < src.width() / 10; i++) {
+            if (i %2 == 0) {
+                Imgproc.line(src,new Point(start.x + i * 10,start.y),new Point(start.x + i * 10 + 10,start.y),new Scalar(0,0,0),1);
+            }
+        }
+    }
+    Mat myRedContours(Mat src) {
+        List<MatOfPoint> myRedContours;
+        myRedContours = new ArrayList<MatOfPoint>();
+        Mat myRedHierarchy = new Mat();
+        Mat cannyMat = new Mat();
+
+        Imgproc.Canny(src, cannyMat, 70, 105); // 20  35的值不错，再小的值，噪音会特别大，处理也很麻烦。 最好能只处理submat
+        Imgproc.findContours(cannyMat, myRedContours, myRedHierarchy, Imgproc.RETR_EXTERNAL , Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
+        myRedHierarchy.release();
+
+        for (int contourIdx = 0; contourIdx < myRedContours.size(); contourIdx++) {
+            MatOfPoint2f approxCurve = new MatOfPoint2f();
+            MatOfPoint2f contour2f = new MatOfPoint2f(myRedContours.get(contourIdx).toArray());
+            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
+            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
+
+            Rect rect = Imgproc.boundingRect(points);
+            double height = rect.height;
+            double width = rect.width;
+            if (height > 0.4 * src.height())
+            Imgproc.rectangle(src, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0, 0), 3);
+            }
+
+
+        return src;
+    }
+    Mat myRedBlob(Mat src) {
+        Mat myhierarchy = new Mat();
+        Mat tempMat = new Mat();
+        Imgproc.Canny(src, tempMat, 70, 105); // 20  35的值不错，再小的值，噪音会特别大，处理也很麻烦。 最好能只处理submat
+        // 70   105现在不错，能够找到方框, 但是有红色的时候无法识别。
+        // canny 这里的阈值调整非常重要。后续能否识别到轮廓，识别到什么轮廓都和这里的设置有关系。
+        List<MatOfPoint> myRedContours = new ArrayList<MatOfPoint>();
+        Imgproc.findContours(tempMat, myRedContours, myhierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
+        myhierarchy.release();
+        int contoursLength = 0;
+        for (int contourIdx = 0; contourIdx < myRedContours.size(); contourIdx++) {
+            MatOfPoint2f approxCurve = new MatOfPoint2f();
+            MatOfPoint2f contour2f = new MatOfPoint2f(myRedContours.get(contourIdx).toArray());
+            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
+            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
+
+            Rect rect = Imgproc.boundingRect(points);
+            double height = rect.height;
+            double width = rect.width;
+            double rectArea = width * height;
+            double srcArea = src.width() * src.height();
+            if (rect.x > 0.1 * src.width() && rect.x < 0.95 * src.width() && rectArea > 0.025 * srcArea && rectArea < 0.5 * srcArea) {
+                contoursLength += 1;
+                if (contoursLength > 2)
+                    loc[2] = (int)(rect.x + width) / 2;
+                else
+                    loc[contoursLength] = (int)(rect.x + width/ 2) ;
+                Imgproc.rectangle(src, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 255), 1);
+            }
+
+        }
+        Log.d(TAG, "find contours size" + new String(String.valueOf(contoursLength)));
+        ivSetMat(blockView, src);
+        return src;
+
+
+
+
+
+
+//        Mat mat = new Mat();
+//        Log.d(TAG, "redblob type  " + new String(String.valueOf(src.type())));// 16  CV_8UC3
+//
+//
+//        Mat matsrc = src.clone();
+//        Mat mathsv = matsrc.clone();
+//        Mat matwhite = matsrc.clone();
+////
+//        Imgproc.cvtColor(matsrc, mathsv,Imgproc.COLOR_BGR2HSV);
+////
+////        //red color
+//        Core.inRange(mathsv, new Scalar(110, 0, 0), new Scalar(160, 255, 255), matwhite);
+////
+////        Imgproc.erode(matwhite, matwhite, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)) );
+////        Imgproc.dilate( matwhite, matwhite, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)) );
+////
+////        Imgproc.dilate( matwhite, matwhite, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)) );
+////        Imgproc.erode(matwhite, matwhite, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5, 5)) );
+//
+////        Mat matFim = matwhite.clone();
+//
+//
+//
+////        Core.bitwise_and(matsrc, matsrc, matFim, matwhite);
+////
+//////        Imgproc.cvtColor(matFim, matFim, Imgproc.COLOR_GRAY2BGR);
+//////        Imgproc.cvtColor(matFim, matFim, Imgproc.COLOR_RGB2RGBA);
+////
+//////        return matFim;
+////        ivSetMat(blockView, matwhite);
+////        int startT = 0;
+////        int endT = 0;
+////        int startC = 0;
+////        int endC = 0;
+////        for (int i = 0; i < matwhite.cols(); i++) {
+////            double[] data = matwhite.get(matwhite.rows() / 2, i); //Stores element in an array
+////            Log.d(TAG, "pixel   " + new String(String.valueOf(data[0])) );
+////            if (255 - (int)data[0] < 5) {
+////                int j = i;
+////                for (; j < matwhite.cols(); j++) {
+////                    double[] value = matwhite.get(matwhite.rows() / 2, j);
+////                    if (255 - (int)value[0] > 5) {
+////                        break;
+////                    }
+////                }
+////                if (j - i > 10) {
+////                    TLength = (j + i) / 2;
+////                    Log.d(TAG, "tlength   " + new String(String.valueOf(TLength)) );
+////                }
+////
+////            }
+////        }
+////        Log.d(TAG, "tlength   " + new String(String.valueOf(TLength)) + "length  " + new String(String.valueOf(matwhite.cols())));
+////        return src;
+//
+//
+//        Mat whiteDilated = new Mat();
+////        Imgproc.dilate(matwhite, whiteDilated, new Mat());
+////        Imgproc.cvtColor(whiteDilated, whiteDilated, Imgproc.COLOR_BGR2GRAY);
+//        Imgproc.cvtColor(src, whiteDilated, Imgproc.COLOR_BGR2GRAY);
+//        List<MatOfPoint> myRedContours = new ArrayList<MatOfPoint>();
+//        Mat mHierarchy = new Mat();
+//        Imgproc.findContours(whiteDilated, myRedContours, mHierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+//        for (int contourIdx = 0; contourIdx < myRedContours.size(); contourIdx++) {
+//            MatOfPoint2f approxCurve = new MatOfPoint2f();
+//            MatOfPoint2f contour2f = new MatOfPoint2f(myRedContours.get(contourIdx).toArray());
+//            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
+//            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+//            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
+//
+//            Rect rect = Imgproc.boundingRect(points);
+//            double height = rect.height;
+//            double width = rect.width;
+//            Log.d(TAG, "find contours");
+//            Imgproc.rectangle(whiteDilated, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(255, 255, 255), 3);
+//
+//        }
+//        ivSetMat(blockView, whiteDilated);
+//        return src;
+
+//        src = myRedContours(src);
+
+
+//        contours = new ArrayList<MatOfPoint>();
+
+
+
+
+
+//                Mat binaryMat = new Mat();
+//                Imgproc.cvtColor(rgbImage, binaryMat, Imgproc.COLOR_BGR2GRAY);
+//
+//
+//
+//
+//        //https://stackoverflow.com/a/40918718/334402
+//
+////            Pyramid Down - this downsizes the image and looses some resolution
+//        //See: http://docs.opencv.org/2.4/doc/tutorials/imgproc/pyramids/pyramids.html
+//        //Mat mPyrDownMat = new Mat();
+//        //Imgproc.pyrDown(rgbImage, mPyrDownMat);
+//        //Imgproc.pyrDown(mPyrDownMat, mPyrDownMat);
+//
+//        //Convert color scheme to HSV - this means that a color can be
+//        //identified with a single value, the hue, instead of three values
+//        Mat mHsvMat = new Mat();
+//        Imgproc.cvtColor(rgbImage, mHsvMat, Imgproc.COLOR_BGR2HSV_FULL);
+//
+//        //This creates a new image with only the color values that are wihtin
+//        //the lower and upper thresholds set in mLowerBound and mUpperBound. These
+//        //values were calculated when the method 'setHsvColor' was called with the
+//        //color of the object that the user touched on the screen.
+//        //So you effectively get an image with just the red or just the blue or whatever
+//        //the color of the blob that the user selected was. Note that if there are multiple
+//        //blobs or objects with this color you will get them all. You can see this quite easily
+//        //with a simple test of the app with a couple of similar colored objects.
+//        Scalar mLowerBound = new Scalar(200, 0, 0);
+//        Scalar mUpperBound = new Scalar(255, 255, 255);
+//        Mat mMask = new Mat();
+//        Core.inRange(mHsvMat, mLowerBound, mUpperBound, mMask);
+//
+//        //dilate effectively emphasises the brighter colors, so making them bigger within the image
+//        //In this case it should be the chosen color which is emphasised against the
+//        //darker (black) background.
+//        //See:http://docs.opencv.org/2.4/doc/tutorials/imgproc/erosion_dilatation/erosion_dilatation.html
+//        Mat mDilatedMask = new Mat();
+//        Imgproc.dilate(mMask, mDilatedMask, new Mat());
+//
+//        Mat tempRes = new Mat();
+////        Imgproc.cvtColor(mDilatedMask, tempRes, Imgproc.COLOR_HSV2BGR);
+//        ivSetMat(blockView, mDilatedMask);
+////        return rgbImage;
+//
+//        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+//        //Finds the contours which in this case means the edge of the color blobs
+//        Mat mHierarchy = new Mat();
+//        Imgproc.findContours(mDilatedMask, contours, mHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+//
+//        // Find max contour area
+//        //This is actually refering to the area enclosed by a contour. For this to work it is important
+//        //that the contour be closed, so if this is not the case some objects may be missed here.
+////        double maxArea = 0;
+////        Iterator<MatOfPoint> each = contours.iterator();
+////        while (each.hasNext()) {
+////            MatOfPoint wrapper = each.next();
+////            double area = Imgproc.contourArea(wrapper);
+////            if (area > maxArea)
+////                maxArea = area;
+////        }
+//
+//        // Filter contours by area and resize to fit the original image size
+//        //Here we are simply discrading any contours that are below the min size that was
+//        //set in the method 'setMinContourArea' or the default if it was not set. In other
+//        //words discrading any small object detected.
+//        List<MatOfPoint> mContours = new ArrayList<MatOfPoint>();
+//        mContours.clear();
+//        Iterator<MatOfPoint> each = contours.iterator();
+//        each = contours.iterator();
+//        double mMinContourArea = 0;
+//        while (each.hasNext()) {
+//            MatOfPoint contour = each.next();
+//            if (Imgproc.contourArea(contour) > mMinContourArea) {
+//                Core.multiply(contour, new Scalar(4,4), contour);
+//                mContours.add(contour);
+//            }
+//        }
+//        //Now we return the list of contours - each contour is a closed area that is
+//        //colored in whatever color the user selected when they touched the object.
+//        //This color, as a reminder, was set by a call to 'setHsvColor'.
+////        public List<MatOfPoint> getContours() {
+////        return mContours;
+////        }
+//        Log.d(TAG, "contours size : " + new String(String.valueOf(mContours.size())));
+//        for (int contourIdx = 0; contourIdx < mContours.size(); contourIdx++)
+//        {
+//            MatOfPoint2f approxCurve = new MatOfPoint2f();
+//            MatOfPoint2f contour2f = new MatOfPoint2f(mContours.get(contourIdx).toArray());
+//            double approxDistance = Imgproc.arcLength(contour2f, true) * 0.01;
+//            Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+//            MatOfPoint points = new MatOfPoint(approxCurve.toArray());
+//
+//            Rect rect = Imgproc.boundingRect(points);
+//            double middle = rect.width + rect.x;
+//            Log.d(TAG, " x,y width height " + new String(String.valueOf(rect.x)) + "  " + new String(String.valueOf(rect.y)) + "  " +  new String(String.valueOf(rect.width)) + "  " +  new String(String.valueOf(rect.height)) );
+//            double height = rect.height;
+//            double width = rect.width;
+//
+//            // src.width() / 2 >= rect.x && src.height() / 2 >= rect.y && src.width() / 2 <= rect.x + width && src.height() / 2 <= rect.y + height &&
+////            if (height * width > 50) {// width 横向   height 纵向 竖的  height < 200 &&
+//                // (abs(src.width() / 2 - rect.x) < 80 && abs(src.height() / 2 - rect.y) < 80) ||
+////                if ( rect.x < src.width() / 2 - 30 && (abs(src.width() / 2 - rect.x - rect.width) < 80 && abs(src.height() / 2 - rect.y - rect.height) < 80)) {
+////
+////                    if (resRect.x > rect.x || resRect.x == 0)
+////                        resRect.x = rect.x;
+////                    if (resRect.y > rect.y || resRect.y == 0)
+////                        resRect.y = rect.y;
+////                    if (resRect.width < rect.width) {
+////                        resRect.width += rect.width;
+////                        resRect.width = min(rect.width, src.width() / 20 * 7);
+////                    }
+////
+////                    resRect.height = max(resRect.height, rect.height);
+//                    Imgproc.rectangle(rgbImage, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(255, 255, 0), 3);
+////                }
+//
+////                Imgproc.putText(src, "contours", rect.tl(), 0, 2, new Scalar(0, 255, 255), 4);
+//
+////            }
+//        }
+//        ivSetMat(blockView, rgbImage);
+//        ivSetMat(blockView, binaryMat);
+//        return rgbImage;
+    }
+
+
     // this function is triggered when user
     // selects the image from the imageChooser
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -642,6 +1191,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                smallClone = myContours(smallClone);
 
 //                smallClone.copyTo(small);
+                Log.d(TAG, "mRGBAT type  " + new String(String.valueOf(mRGBAT.type())));// 16  CV_8UC3
                 Mat temp = myContours(mRGBAT);
 
                 bmap = Bitmap.createBitmap(topView.getWidth(),  topView.getHeight(), Bitmap.Config.ARGB_8888);
