@@ -28,6 +28,9 @@
         android:layout_height="240dp"
         android:layout_below="@id/cameraView"
         android:layout_alignParentTop="true"
+        android:layout_marginRight="5dp"
+        android:layout_marginLeft="5dp"
+        android:layout_marginTop="5dp"
         android:layout_centerHorizontal="true" />
 
     <TextView
@@ -36,14 +39,16 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/topView"
         android:layout_centerHorizontal="true"
-        android:textSize="32dp"
-        android:text="@string/待检测区域" />
+        android:textSize="20dp"
+        android:text="@string/topString" />
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="match_parent"
         android:layout_height="100dp"
         android:layout_below="@id/textView"
+        android:layout_marginRight="5dp"
+        android:layout_marginLeft="5dp"
         android:layout_centerHorizontal="true" />
 
     <TextView
@@ -52,15 +57,54 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/imageView"
         android:layout_centerHorizontal="true"
-        android:textSize="32dp"
-        android:text="@string/处理结果" />
+        android:textSize="20dp"
+        android:text="@string/blockString" />
 
-    <ImageView
-        android:id="@+id/imageView3"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
+<!--    <ImageView-->
+<!--        android:id="@+id/imageView3"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="260dp"-->
+<!--        android:layout_below="@id/textView2"-->
+<!--        android:layout_centerHorizontal="true"/>-->
+
+    <FrameLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/frameLayout"
+        android:layout_marginRight="5dp"
+        android:layout_marginLeft="5dp"
         android:layout_below="@id/textView2"
-        android:layout_centerHorizontal="true" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:id="@+id/imageView3"
+            android:layout_height="260dp"
+            android:layout_width="fill_parent"
+            android:src="@drawable/white"
+            android:scaleType="matrix"></ImageView>
+<!--        <TextView-->
+<!--            android:layout_width="fill_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:textColor="#000"-->
+<!--            android:textSize="40dp"-->
+<!--            android:text="测试" />-->
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="反应强度"
+            android:layout_gravity="bottom"
+            android:gravity="center_horizontal"
+            android:textColor="#000"
+            android:textSize="24dp" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/resultText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/frameLayout"
+        android:layout_centerHorizontal="true"
+        android:textSize="20dp"
+        android:text="@string/resultString" />
 
     <LinearLayout
         android:orientation="horizontal"
