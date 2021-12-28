@@ -31,7 +31,13 @@
         android:layout_marginRight="5dp"
         android:layout_marginLeft="5dp"
         android:layout_marginTop="5dp"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/white"
+        android:layout_gravity="center"
+        android:padding="1dp"
+        android:cropToPadding="true"
+        android:scaleType="centerCrop"
+        android:background="@drawable/black"/>
 
     <TextView
         android:id="@+id/textView"
@@ -49,7 +55,13 @@
         android:layout_below="@id/textView"
         android:layout_marginRight="5dp"
         android:layout_marginLeft="5dp"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/white"
+        android:layout_gravity="center"
+        android:padding="1dp"
+        android:cropToPadding="true"
+        android:scaleType="centerCrop"
+        android:background="@drawable/black"/>
 
     <TextView
         android:id="@+id/textView2"
@@ -80,7 +92,11 @@
             android:layout_height="260dp"
             android:layout_width="fill_parent"
             android:src="@drawable/white"
-            android:scaleType="matrix"></ImageView>
+            android:scaleType="matrix"
+            android:layout_gravity="center"
+            android:padding="1dp"
+            android:cropToPadding="true"
+            android:background="@drawable/black"></ImageView>
 <!--        <TextView-->
 <!--            android:layout_width="fill_parent"-->
 <!--            android:layout_height="wrap_content"-->
